@@ -312,8 +312,6 @@ func (n *Node) handleHeartbeat(req HeartbeatReq) HeartbeatResp {
 		n.votedFor = req.LeaderID
 		n.leaseExpiry = time.Now().Add(100 * time.Millisecond)
 
-		fmt.Printf("[%s] got heartbeat from %s ballot %d\n", n.id, req.LeaderID, req.Ballot)
-
 		n.resetElectionTimer()
 
 		return HeartbeatResp{Ballot: n.ballot, OK: true}
@@ -448,26 +446,3 @@ func (n *Node) startElection(nodeList *NodeList) {
 	}
 }
 
-func main() {
-	node1Id := "1"
-	node2Id := "2"
-	node3Id := "3"
-	node4Id := "4"
-	node5Id := "5"
-
-	nodeList := &NodeList{list: make(map[string]*Node)}
-
-	node1 := NewNode(node1Id, []string{node2Id, node3Id, node4Id, node5Id}, nodeList)
-	node2 := NewNode(node2Id, []string{node1Id, node3Id, node4Id, node5Id}, nodeList)
-	node3 := NewNode(node3Id, []string{node1Id, node2Id, node4Id, node5Id}, nodeList)
-	node4 := NewNode(node4Id, []string{node1Id, node2Id, node3Id, node5Id}, nodeList)
-	node5 := NewNode(node5Id, []string{node1Id, node2Id, node3Id, node4Id}, nodeList)
-
-	go node1.runElectionTimer(nodeList)
-	go node2.runElectionTimer(nodeList)
-	go node3.runElectionTimer(nodeList)
-	go node4.runElectionTimer(nodeList)
-	go node5.runElectionTimer(nodeList)
-
-	select {}
-}

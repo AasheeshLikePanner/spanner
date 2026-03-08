@@ -60,11 +60,9 @@ func (o *TimestampOracle) RegisterPrepare(key string, ts int64){
 
 func (o *TimestampOracle) ClearPrepare(key string) {
 	o.mu.Lock()
-	defer o.mu.Unlock();
+	defer o.mu.Unlock()
 
-	if _, ok := o.prepared[key]; ok {
-		delete(o.prepared, key)
-	}
+	delete(o.prepared, key)
 }
 
 func (o *TimestampOracle) TSafe(key string) int64{

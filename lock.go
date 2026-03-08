@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 type Mode int
@@ -25,24 +26,34 @@ type LockEntry struct {
 	waiters []chan error
 }
 
-func (lm *LockManager) Acquire(key string, mode Mode, txnid string, ts int64, wait chan error) {
+func (lm *LockManager) Acquire(key string, mode Mode, txnid string, ts int64, wait chan error) error {
 	lm.mu.Lock()
-	defer lm.mu.Unlock()
 
 	le, ok := lm.locks[key]
 	if !ok {
 		lm.locks[key] = &LockEntry{txnID: txnid, mode: mode, ts: ts, woundCh: wait,
 			waiters: []chan error{}}
-		return
+		lm.mu.Unlock()
+		return nil
 	}
-	if le.ts > ts {
-		le.woundCh <- fmt.Errorf("wounded")
+	
+	if le.ts < ts {
+		le.waiters = append(le.waiters, wait)
+		lm.mu.Unlock()
+		
+		select {
+		case err := <-wait:
+			return err
+		case <-time.After(100 * time.Millisecond):
+			return fmt.Errorf("timeout waiting for lock on %s", key)
+		}
+	} else {
+		le.woundCh <- fmt.Errorf("wounded by older txn")
 		lm.locks[key] = &LockEntry{txnID: txnid, mode: mode, ts: ts, woundCh: wait,
 			waiters: le.waiters}
-	} else {
-		le.waiters = append(le.waiters, wait)
+		lm.mu.Unlock()
+		return nil
 	}
-
 }
 
 func (lm *LockManager) Release(txnID string) {

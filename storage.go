@@ -12,7 +12,7 @@ type VersionedValue struct {
 
 type Store struct {
 	mu   sync.RWMutex
-	data map[string][]VersionedValue // key → history of values
+	data map[string][]VersionedValue
 }
 
 func NewStore() *Store {
